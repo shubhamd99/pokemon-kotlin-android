@@ -33,14 +33,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         checkPermission()
+        loadPockemons()
     }
 
-    private final val ACCESS_LOCATION = 123
+    private final val ACCESS_LOCATION = 123 // requestCode
 
     private fun checkPermission() {
         if (Build.VERSION.SDK_INT >= 23) {
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // Requesting For Permission
+                // (String[] permissions, int requestCode)
                 requestPermissions(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION), ACCESS_LOCATION)
                 return
             }
@@ -50,7 +52,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun getUserLocation() {
-        Toast.makeText(this, "User Location Access on", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "User Location Access ON", Toast.LENGTH_SHORT).show()
 
         val myLocation = MyLocationListener()
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -74,6 +76,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3, 3f, myLocation)
         val myThread = myThread()
+        // start() method causes this thread to begin execution
         myThread.start()
     }
 
@@ -126,16 +129,28 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    private var oldLocation: Location ?= null
+
     inner class myThread: Thread {
 
-        constructor(): super() {}
+        constructor(): super() {
+            oldLocation = Location("start")
+            oldLocation!!.latitude = 0.0
+            oldLocation!!.longitude = 0.0
+        }
 
         override fun run() {
             while (true) {
                 try {
+
+                    if (oldLocation.distanceTo(currLoc) == 0f) {
+                        continue
+                    }
+                    oldLocation = currLoc
+
                     runOnUiThread {
                         mMap.clear()
-                        // Add a marker in Sydney and move the camera
+                        // Show My Marker
                         val sydney = LatLng(currLoc!!.latitude, currLoc!!.longitude)
                         mMap.addMarker(MarkerOptions()
                                 .position(sydney)
@@ -143,10 +158,33 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                 .snippet("here is my location")
                                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.mario)))
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 10f))
+
+                        // Show pockemons
+                        for (i in listOfPockemons.indices) {
+                            val newPockemon = listOfPockemons[i]
+
+                            if (newPockemon.isCatch == false) {
+                                val pocLoc = LatLng(newPockemon.lat!!, newPockemon.log!!)
+                                mMap.addMarker(MarkerOptions()
+                                        .position(pocLoc)
+                                        .title(newPockemon.name)
+                                        .snippet(newPockemon.des)
+                                        .icon(BitmapDescriptorFactory.fromResource(newPockemon.image!!)))
+                            }
+                        }
                     }
-                    Thread.sleep(1000)
+                    // Thread. sleep() method can be used to pause the execution of current thread for specified time in milliseconds.
+                    Thread.sleep(1000) // block main thread for 1 second to keep JVM alive
                 } catch (ex: Exception) {}
             }
         }
+    }
+
+    private val listOfPockemons = ArrayList<Pokemon>()
+
+    private fun loadPockemons() {
+        listOfPockemons.add(Pokemon(R.drawable.charmander, "Charmander", "Charmander is from Japan", 55.0, 37.7789994893035, -122.401846647263))
+        listOfPockemons.add(Pokemon(R.drawable.bulbasaur, "Bulbasaur", "Bulbasaur is from China", 45.0, 37.7949568502666, -122.410494089127))
+        listOfPockemons.add(Pokemon(R.drawable.squirtle, "Squirtle", "Squirtle is from India", 65.0, 37.7816621152613, -122.41225361824))
     }
 }
