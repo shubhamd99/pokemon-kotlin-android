@@ -143,7 +143,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             while (true) {
                 try {
 
-                    if (oldLocation.distanceTo(currLoc) == 0f) {
+                    if (oldLocation!!.distanceTo(currLoc) == 0f) {
                         continue
                     }
                     oldLocation = currLoc
@@ -164,12 +164,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                             val newPockemon = listOfPockemons[i]
 
                             if (newPockemon.isCatch == false) {
-                                val pocLoc = LatLng(newPockemon.lat!!, newPockemon.log!!)
+                                val pocLoc = LatLng(newPockemon.location!!.latitude, newPockemon.location!!.longitude)
                                 mMap.addMarker(MarkerOptions()
                                         .position(pocLoc)
                                         .title(newPockemon.name)
-                                        .snippet(newPockemon.des)
+                                        .snippet(newPockemon.des + ", power: " + newPockemon.power)
                                         .icon(BitmapDescriptorFactory.fromResource(newPockemon.image!!)))
+
+                                if (currLoc!!.distanceTo(newPockemon.location) < 2) {
+                                    newPockemon.isCatch = true
+                                    listOfPockemons[i] = newPockemon
+                                    playerPower += newPockemon.power!!
+                                    Toast.makeText(applicationContext, "You catched new pokemon your power is $playerPower", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     }
@@ -181,6 +188,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private val listOfPockemons = ArrayList<Pokemon>()
+    private var playerPower: Double = 0.0
 
     private fun loadPockemons() {
         listOfPockemons.add(Pokemon(R.drawable.charmander, "Charmander", "Charmander is from Japan", 55.0, 37.7789994893035, -122.401846647263))
